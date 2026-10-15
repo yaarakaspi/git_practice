@@ -14,11 +14,10 @@ def get_url(answer):
         url = params[1]
     return url[1:]
 
-def build_reply(path, command_type):
+def build_reply(path):
     """
     builds reply to send
     :param path: the file path
-    :param command_type: type of command(for example: 200 OK)
     :return: full reply
     """
     extra = None
@@ -28,10 +27,14 @@ def build_reply(path, command_type):
         length = len(data)
         extra = f"Content-Length: {str(length)}\r\n\r\n".encode()
         extra += data
+        command_type = "200 OK"
+    else:
+        command_type = "404 NOT FOUND"
 
     #building message
     ans = f"HTTP/1.1 {command_type}\r\n".encode()
-    ans += extra  # data is already encoded
+    if extra:
+        ans += extra  # data is already encoded
 
     return ans
 
@@ -56,7 +59,7 @@ def main():
             url = get_url(data)
             if url:
                 # checking if file is valid
-                ans = build_reply(url, "200 OK") # building reply
+                ans = build_reply(url) # building reply
 
                 try:
                     client_soc.send(ans)

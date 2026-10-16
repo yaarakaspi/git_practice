@@ -1,6 +1,7 @@
 import socket
 import os
 
+
 def get_url(answer):
     """
     gets url from http message

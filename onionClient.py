@@ -1,3 +1,5 @@
+# https://github.com/yaarakaspi/git_practice
+
 import socket
 
 SERVER_IP = "127.0.0.1"

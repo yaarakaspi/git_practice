@@ -15,7 +15,8 @@ def get_url(answer):
     url = None
     if len(params) == 3 and params[0] == "GET" and params[2] == "HTTP/1.1":
         url = params[1]
-    return url[1:]
+        url = url[1:]
+    return url
 
 def build_reply(path):
     """
@@ -23,8 +24,19 @@ def build_reply(path):
     :param path: the file path
     :return: full reply
     """
-    extra = None
-    if os.path.exists(path):
+    forbid_files = ['secret1.html', 'secret.png', 'secret3.html']
+    moved_files = {"butterfly.png":"https://pngimg.com/uploads/butterfly/butterfly_PNG1037.png", "present.png":"https://thumbs.dreamstime.com/b/d-glossy-yellow-christmas-gift-box-red-bow-png-473178015.jpg?w=768"}
+    extra = f"Content-Length: 0\r\n\r\n".encode()
+    if path == "server":
+        command_type = "505"
+        # keep doing
+    if path in forbid_files:
+        command_type = "403 FORBIDDEN"
+    elif path in moved_files.keys():
+        command_type = "301 MOVED PERMANENTLY"
+        extra = f"Location: {moved_files[path]}\r\nContent-Length: 0\r\n\r\n".encode()
+    elif os.path.exists(path):
+
         with open(path, "rb") as file:
             data = file.read()
         length = len(data)
@@ -36,8 +48,7 @@ def build_reply(path):
 
     #building message
     ans = f"HTTP/1.1 {command_type}\r\n".encode()
-    if extra:
-        ans += extra  # data is already encoded
+    ans += extra  # data is already encoded
 
     return ans
 
@@ -63,19 +74,17 @@ def main():
             if url:
                 # checking if file is valid
                 ans = build_reply(url) # building reply
-
-                try:
-                    client_soc.send(ans)
-                except Exception as e:
-                    print(f"Error in send: {e}")
-
-                #disconnecting client
-                print(f"Disconnecting client: {addr[0]}")
-                client_soc.close()
             else:
-                # disconnecting client
-                print(f"Disconnecting client: {addr[0]}")
-                client_soc.close()
+                ans = build_reply("index.html")
+
+            try:
+                client_soc.send(ans)
+            except Exception as e:
+                print(f"Error in send: {e}")
+
+            # disconnecting client
+            print(f"Disconnecting client: {addr[0]}")
+            client_soc.close()
 
 if __name__ == "__main__":
     main()

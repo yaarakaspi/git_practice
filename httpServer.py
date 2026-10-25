@@ -75,13 +75,19 @@ def build_reply(path):
         command_type = "200 OK"
         if "height=" in path and "width=" in path and "&" in path:
             cords = path.split("&")
-            num1 = cords[0].split("=")[1]
-            num2 = cords[1].split("=")[1]
-            extra = calculate_area(num1, num2)
+            if len(cords) > 2:
+                msg = "Invalid use of function 'calculate-area'"
+                extra = f"Content-Length: {len(msg.encode())}\r\n\r\n".encode() + msg.encode()
+            else:
+                num1 = cords[0].split("=")[1]
+                num2 = cords[1].split("=")[1]
+                extra = calculate_area(num1, num2)
         else:
             msg = "Invalid use of function 'calculate-area'"
             extra = f"Content-Length: {len(msg.encode())}\r\n\r\n".encode() + msg.encode()
-
+    elif "calculate-next" == path:
+        command_type = "200 OK"
+        extra = calculate_next("4")
     elif "calculate-next?num=" in path:
         command_type = "200 OK"
         num = path.split("=")[1]

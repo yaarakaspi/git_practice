@@ -4,14 +4,25 @@ import socket
 import os
 
 
+def check_get(answer):
+    """
+    checks if answer is of type get
+    :param answer: the message to check
+    :return: true if get, false otherwise
+    """
+    params = answer[0].split(' ')
+    if len(params) == 3 and params[0] == "GET" and params[2] == "HTTP/1.1":
+       return True
+    return False
+
+#TODO this doesnt fit hw3 so fix!
 def get_url(answer):
     """
     gets url from http message
     :param answer: the http message
     :return: the url
     """
-    lines = answer.split('\r\n')
-    params = lines[0].split(' ')
+    params = answer[0].split(' ')
     url = None
     if len(params) == 3 and params[0] == "GET" and params[2] == "HTTP/1.1":
         url = params[1]
@@ -134,7 +145,9 @@ def main():
         else:
             print(data)
 
-            url = get_url(data)
+            lines = data.split('\r\n')
+
+            url = get_url(lines[0])
             if url:
                 # checking if file is valid
                 ans = build_reply(url)  # building reply

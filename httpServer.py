@@ -10,23 +10,36 @@ def check_get(answer):
     :param answer: the message to check
     :return: true if get, false otherwise
     """
-    params = answer[0].split(' ')
+    params = answer.split(' ')
     if len(params) == 3 and params[0] == "GET" and params[2] == "HTTP/1.1":
-       return True
+        return True
     return False
 
-#TODO this doesnt fit hw3 so fix!
+
+def check_post(answer):
+    """
+    checks if answer is of type post
+    :param answer: the message to check
+    :return: true if post, false otherwise
+    """
+    params = answer.split(' ')
+    if len(params) == 3 and params[0] == "POST" and params[2] == "HTTP/1.1":
+        return True
+    return False
+
+
 def get_url(answer):
     """
     gets url from http message
     :param answer: the http message
     :return: the url
     """
-    params = answer[0].split(' ')
+    params = answer.split(' ')
     url = None
-    if len(params) == 3 and params[0] == "GET" and params[2] == "HTTP/1.1":
+    if check_get(answer) or check_post(answer):
         url = params[1]
         url = url[1:]
+
     return url
 
 
@@ -82,7 +95,20 @@ def build_reply(path):
     forbid_files = ['secret1.html', 'secret.png', 'secret3.html']
     moved_files = {"butterfly.png": "https://pngimg.com/uploads/butterfly/butterfly_PNG1037.png", "present.png": "https://thumbs.dreamstime.com/b/d-glossy-yellow-christmas-gift-box-red-bow-png-473178015.jpg?w=768"}
     extra = f"Content-Length: 0\r\n\r\n".encode()
-    if "calculate-area?" in path:
+    if "image?img_name=" in path:
+        file_name = path.split("img_name=")[1]
+
+        # checking if img was already saved
+        if os.path.exists(file_name):
+            with open(file_name, "rb") as f:
+                data = f.read()
+            length = len(data)
+            extra = f"Content-Length: {str(length)}\r\n\r\n".encode()
+            extra += data
+            command_type = "200 OK"
+        else:
+            command_type = "404 NOT FOUND"
+    elif "calculate-area?" in path:
         command_type = "200 OK"
         if "height=" in path and "width=" in path and "&" in path:
             cords = path.split("&")
@@ -112,7 +138,6 @@ def build_reply(path):
         command_type = "301 MOVED PERMANENTLY"
         extra = f"Location: {moved_files[path]}\r\nContent-Length: 0\r\n\r\n".encode()
     elif os.path.exists(path):
-
         with open(path, "rb") as file:
             data = file.read()
         length = len(data)
@@ -139,29 +164,66 @@ def main():
         print(f"{addr[0]} connected")
 
         try:
-            data = client_soc.recv(1024).decode()
+            data = client_soc.recv(1024)  # not decoding because might be image
         except Exception as e:
             print(f"Error in receive {str(e)}")
-        else:
-            print(data)
-
-            lines = data.split('\r\n')
-
-            url = get_url(lines[0])
-            if url:
-                # checking if file is valid
-                ans = build_reply(url)  # building reply
-            else:
-                ans = build_reply("index.html")
-
-            try:
-                client_soc.send(ans)
-            except Exception as e:
-                print(f"Error in send: {e}")
-
-            # disconnecting client
-            print(f"Disconnecting client: {addr[0]}")
             client_soc.close()
+            continue
+
+        if data:
+            # splitting headers and body
+            if "\r\n\r\n".encode() in data:
+                data_split = data.split("\r\n\r\n".encode(), 1)
+                headers = data_split[0]
+                body = data_split[1]
+
+                headers = headers.decode()
+                lines = headers.split('\r\n')
+                url = get_url(lines[0])
+
+                content_len = 0
+                for line in lines:
+                    if line.lower().startswith("content-length:"):
+                        content_len = int(line.split(":")[1].strip())
+
+                # keep receiving until end of post
+                while len(body) < content_len:
+                    body += client_soc.recv(1024)
+
+                if check_post(lines[0]):
+                    if url and "cyberServ?secret" in url:
+                        secret_msg = body.decode()
+                        print(f"Secret message: {secret_msg}\n")
+
+                        # adding to file
+                        with open("secret_messages.txt", "a") as f:
+                            f.write(secret_msg + "\n")
+                        ans = "HTTP/1.1 200 OK\r\nContent-length: 0\r\n\r\n".encode()
+
+                    elif url and "cyberServ?img_name=" in url:
+                        file_name = url.split("img_name=")[1]
+                        print(f"File name: {file_name}\n")
+
+                        with open(file_name, "wb") as f:
+                            f.write(body)
+                        ans = "HTTP/1.1 200 OK\r\nContent-length: 0\r\n\r\n".encode()
+
+                    else:
+                        ans = "HTTP/1.1 404 NOT FOUND\r\n\r\n".encode()
+                else:
+                    if url:
+                        ans = build_reply(url)
+                    else:
+                        ans = build_reply("index.html")
+
+                try:
+                    client_soc.send(ans)
+                except Exception as e:
+                    print(f"Error in send: {e}")
+
+        # disconnecting client
+        print(f"Disconnecting client: {addr[0]}")
+        client_soc.close()
 
 
 if __name__ == "__main__":

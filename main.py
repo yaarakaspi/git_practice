@@ -1,8 +1,2 @@
-print("Hello, Git!")
-
-
-def add_numbers(a, b):
-    return a + b
-
-
-print("Sum:", add_numbers(5, 3))
+from scapy.all import show_interfaces
+show_interfaces()

@@ -1,5 +1,4 @@
 import socket
-from zoneinfo import reset_tzpath
 
 MID_IP = "127.0.0.1"
 MID_PORT = 53
@@ -7,7 +6,7 @@ MID_PORT = 53
 MASTER_IP = "127.0.0.1"
 MASTER_PORT = 531
 
-dns_dict = {"nbc.com": "2.21.109.123", "cnn.com": "151.101.195.5", "google.com": "142.250.75.78"}
+dns_dict = {}
 
 
 def get_ip(name, soc):
@@ -87,15 +86,18 @@ def main():
     master_soc.bind((MID_IP, MID_PORT))
     master_soc.listen(1)
 
-    start_soc, addr = mid_soc.accept()
+    client_soc, addr = master_soc.accept()
 
     while True:
         try:
             # getting length of message from start dns
-            data_len = int(start_soc.recv(4).decode())
-
+            data_len = client_soc.recv(4).decode()
+            if not data_len:
+                print(f"Disconnected due to {str(e)}")
+                break
+            data_len = int(data_len)
             # getting actual message
-            data = start_soc.recv(data_len).decode()
+            data = client_soc.recv(data_len).decode()
         except Exception as e:
             exit(f"Disconnected due to {str(e)}")
 
@@ -116,16 +118,22 @@ def main():
 
         try:
             # sending the length first
-            start_soc.send(str(len(reply)).zfill(4).encode())
+            length = "0"
+            if reply:
+                length = str(len(reply))
+            client_soc.send(length.zfill(4).encode())
             # sending actual message
-            start_soc.send(reply.encode())
+            if reply:
+                reply = reply.encode()
+            client_soc.send(reply)
         except Exception as e:
             print(f"Disconnected due to {str(e)}")
             break
 
-    start_soc.close()
+    client_soc.close()
     mid_soc.close()
     master_soc.close()
+
 
 if __name__ == "__main__":
     main()

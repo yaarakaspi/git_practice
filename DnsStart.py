@@ -1,6 +1,6 @@
 import socket
 
-dns_dict = {"nbc.com": "2.21.109.123", "cnn.com": "151.101.195.5", "google.com": "142.250.75.78"}
+dns_dict = {}
 
 MID_IP = "127.0.0.1"
 MID_PORT = 53
@@ -35,7 +35,7 @@ def get_ip(name, soc):
     except Exception as e:
         exit(f"Disconnected due to {str(e)}")
 
-    return "NOT FOUND"
+    return None
 
 
 def get_domain(ip, soc):
@@ -68,7 +68,7 @@ def get_domain(ip, soc):
     except Exception as e:
         exit(f"Disconnected due to {str(e)}")
 
-    return "NOT FOUND"
+    return None
 
 
 def main():
@@ -86,11 +86,17 @@ def main():
         if choice == "1":
             ip = input("Please enter the ip address: ")
             domain_name = get_domain(ip, start_soc)
-            print(domain_name)
+            if domain_name:
+                print(domain_name)
+            else:
+                print("No domain name found")
         if choice == "2":
             domain_name = input("Please enter the domain name to check: ")
             ip = get_ip(domain_name, start_soc)
-            print(ip)
+            if ip:
+                print(ip)
+            else:
+                print("No ip was found")
 
     print("\n\nSee you later...")
     start_soc.close()
